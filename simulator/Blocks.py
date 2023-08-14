@@ -19,15 +19,15 @@ class Block(ABC):
         self.saveStates = save_states
 
     @abstractmethod
-    def get_initial_condition(self):
+    def get_initial_condition(self) -> np.ndarray:
         pass
 
     @abstractmethod
-    def get_next_state(self):
+    def get_next_state(self) -> np.ndarray:
         pass
 
     @abstractmethod
-    def get_state(self):
+    def get_state(self) -> np.ndarray:
         pass
 
 
@@ -96,3 +96,27 @@ class Connection:
     def __init__(self, block1: Block, block2: Block):
         self.source = block1
         self.target = block2
+
+
+class ScopeBlock(IOBlock):
+
+    def __init__(self, name: str, prev_block: Block, next_block: Block = None, save_states: bool = True):
+        super().__init__(name, prev_block.dim_output, prev_block.dim_output,
+                         prev_block, next_block, save_states)
+
+        self.input = np.zeros((prev_block.dim_output, 1))
+
+    def get_initial_condition(self) -> np.ndarray:
+        return self.input
+
+    def get_next_state(self) -> np.ndarray:
+        return self.input
+
+    def get_state(self) -> np.ndarray:
+        return self.input
+
+    def get_response(self, sim_time: float):
+        return self.input
+
+    def set_u_k(self, u):
+        self.input = u

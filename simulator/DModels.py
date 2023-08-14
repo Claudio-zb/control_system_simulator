@@ -76,16 +76,16 @@ class LinearDModel(IOBlock):
 
     def get_response(self, sim_time: float):
         u = self.initial_input
-        x_next = self.A @ self.x0 + self.B @ u
+        x_next = self.A @ self.initial_state + self.B @ u
         y_next = self.C @ x_next + self.D @ u
 
         return y_next
 
     def get_state(self):
-        return self.x0
+        return self.initial_state
 
     def get_initial_condition(self):
-        return self.x0
+        return self.initial_state
 
     def set_u_k(self, u):
         self.initial_input = u
