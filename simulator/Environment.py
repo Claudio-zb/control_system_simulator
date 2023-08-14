@@ -1,33 +1,73 @@
-from .Block import Block, OBlock, IOBlock
+from typing import Dict, List, Any
+
+from .Blocks import Block, OBlock, IOBlock, Connection
 import numpy as np
 
 
 class Environment:
-    def __init__(self, root: OBlock, sequence: list[IOBlock], ts=1):
-        self.sequence = sequence
+    def __init__(self, blocks: list[Block], connections: list[Connection], ts: float = 1):
+        self.blocks = blocks
+        self.connections = connections
         self.ts = ts
-        self.root = root
 
-    def simulation(self, final_time):
-        sim_time = 0
-        response = []
-        while sim_time <= final_time:
-            temp_output = self.root.get_output(sim_time)
-            for item in self.sequence:
-                temp_output = item.get_response(sim_time, temp_output)
-            response.append(temp_output)
-            sim_time += self.ts
-        return response
+        graph: dict[str, list[str]] = {}
+        for connection in self.connections:
+            source_id = connection.source.name
+            target_id = connection.target.name
+            if source_id not in graph:
+                graph[source_id] = []
+            graph[source_id].append(target_id)
 
-    def pre_simulation(self, final_time):
+        self.graph = graph
+        blocks_dict = {}
+        for block in blocks:
+            blocks_dict.update({block.name: block})
+        self.blocks_dict: dict[str, Block] = blocks_dict
 
-        """Prepares the environment before running a simulation and
-        creates a dictionary which will collect the trajectory of the desired blocks """
+    def simulation(self, end_time):
 
-        n_steps = np.ceil(final_time / self.ts)
+        # method to do DFS
         outputs = {}
-        if self.root.saveStates:
-            outputs.update({self.root.name: self.root.get_output(0)})
-        for item in self.sequence:
-            if item.saveStates:
-                outputs.update({item.name: item.get_x0()})
+        for block in self.blocks:
+            name = block.name
+            if name not in outputs:
+                outputs[name] = []
+
+        def dfs(root_name: str, node_name: str, visited: dict, isOver: bool = True):
+
+            visited[node_name] = True
+
+            if node_name in self.graph:
+                current_block = self.blocks_dict[node_name]
+                x0 = current_block.get_initial_condition()
+                outputs[node_name].append(x0)
+                neighbors = self.graph[node_name]
+                for neighbor in neighbors:
+
+                    if not visited[neighbor] or root_name==neighbor:
+                        next_block = self.blocks_dict[neighbor]
+                        next_block.set_u_k(x0)
+                        #for block_name in self.graph[node_name]:
+                            #next_block = self.blocks_dict[block_name]
+                            #next_block.set_u_k(x0)
+                        if root_name != neighbor:
+                            dfs(root_name, neighbor, visited)
+            return
+
+        def update():
+            for item in self.blocks:
+                item.initial_state = item.get_next_state()
+
+        n_steps = int(np.ceil(end_time / self.ts))
+        sim_time = 0
+
+        for i in range(n_steps):
+            start_node = self.blocks[0].name
+            visited_nodes = {node.name: False for node in self.blocks}
+
+            dfs(start_node, start_node, visited_nodes)
+
+            update()
+            sim_time += self.ts
+
+        return outputs

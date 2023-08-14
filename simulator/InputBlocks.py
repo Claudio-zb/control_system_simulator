@@ -1,6 +1,6 @@
 from math import sin
 
-from .Block import Block
+from .Blocks import Block
 
 
 class StepBlock(Block):
@@ -9,13 +9,17 @@ class StepBlock(Block):
         self.initial_value = initial_value
         self.final_value = final_value
         self.time_step = time_step
-        super().__init__(name=name, prev_block=None, next_block=next_block, save_states=save_states)
+        super().__init__(name=name, dim_input=0, dim_output=1,
+                         prev_block=None, next_block=next_block, save_states=save_states)
 
     def get_output(self, sim_time: float):
         if sim_time >= self.time_step:
             return self.final_value
         else:
             return self.initial_value
+
+    def get_initial_condition(self):
+        return self.get_output(0)
 
 
 class SineWave(Block):
@@ -24,7 +28,12 @@ class SineWave(Block):
         self.freq = freq
         self.amplitude = amplitude
         self.phase = phase
-        super().__init__(name=name, prev_block=None, next_block=next_block, save_states=save_states)
+        super().__init__(name=name, dim_input=0, dim_output=1,
+                         prev_block=None, next_block=next_block, save_states=save_states)
 
     def get_output(self, sim_time: float):
         return self.amplitude * sin(self.freq * sim_time + self.phase)
+
+    def get_initial_condition(self):
+        return self.get_output(0)
+

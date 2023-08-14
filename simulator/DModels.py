@@ -1,21 +1,31 @@
-from .Block import IOBlock
+from .Blocks import IOBlock
 import numpy as np
 
 
 class DelayBlock(IOBlock):
-    def __init__(self, x0, name: str = "delay", ts: int = 1,
-                 prev_block=None, next_block=None, save_states=False):
-        super().__init__(name, prev_block, next_block, save_states)
-        self.ts = ts
-        self.x0 = x0
 
-    def get_response(self, sim_time: float, u):
-        outcome = self.x0
-        self.x0 = u
+    def __init__(self, x0: np.ndarray, name: str = "delay", ts: int = 1,
+                 prev_block=None, next_block=None, save_states=False):
+
+        dim_input, dim_output = x0.shape
+        super().__init__(name, dim_input, dim_output, x0, prev_block, next_block, save_states)
+        self.ts = ts
+
+    def get_response(self, sim_time):
+        outcome = self.initial_input
         return outcome
 
-    def get_x0(self):
-        return self.x0
+    def get_state(self):
+        return self.initial_state
+
+    def get_initial_condition(self):
+        return self.initial_state
+
+    def set_u_k(self, u):
+        self.initial_input = u
+
+    def get_next_state(self):
+        return self.initial_input
 
 
 class LinearDModel(IOBlock):
@@ -40,7 +50,8 @@ class LinearDModel(IOBlock):
     def __init__(self, A: np.ndarray, B: np.ndarray, C: np.ndarray, D: np.ndarray, x0: np.ndarray, ts=1,
                  name: str = "lin_d_sys", prev_block=None, next_block=None, save_states=False) -> None:
 
-        super().__init__(name, prev_block, next_block, save_states)
+        super().__init__(name, dim_input=B.shape[1], dim_output=C.shape[0],
+                         prev_block=prev_block, next_block=next_block, save_states=save_states, initial_state=x0)
 
         self.A = A
         self.B = B
@@ -63,16 +74,25 @@ class LinearDModel(IOBlock):
         else:
             raise Exception(f'C and D matrix dimensions does not match')
 
-    def get_response(self, sim_time: float, u: np.ndarray):
-        if type(u) == float or type(u) == int:
-            u = np.array([[u]])
+    def get_response(self, sim_time: float):
+        u = self.initial_input
         x_next = self.A @ self.x0 + self.B @ u
         y_next = self.C @ x_next + self.D @ u
 
         return y_next
 
-    def get_x0(self):
+    def get_state(self):
         return self.x0
+
+    def get_initial_condition(self):
+        return self.x0
+
+    def set_u_k(self, u):
+        self.initial_input = u
+
+    def get_next_state(self):
+        return self.get_response(0)
+
 
 """class DModel(IOBlock):
     def __init__(self, name: str, dynamics_func: function, x0, ts: int = 1,
