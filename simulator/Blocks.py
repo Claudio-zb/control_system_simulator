@@ -10,7 +10,7 @@ class Block(ABC):
     """
 
     def __init__(self, name: str, dim_input: int, dim_output: int,
-                 prev_block=None, next_block=None, save_states=False):
+                 prev_block: object = None, next_block: object = None, save_states: bool = False):
         self.name = name
         self.dim_input = dim_input
         self.dim_output = dim_output
@@ -60,12 +60,13 @@ class OBlock(Block, ABC):
 
 
 class IOBlock(Block, ABC):
-    def __init__(self, name: str, dim_input: int, dim_output: int, initial_state,
+    def __init__(self, name: str, dim_input: int, dim_output: int, initial_state: np.ndarray,
                  prev_block: Block = None, next_block: Block = None, save_states=False):
 
         super().__init__(name, dim_input, dim_output, prev_block, next_block, save_states)
 
         self.initial_state = initial_state
+        self.current_state = initial_state
         if prev_block is not None:
             self.initial_input = prev_block.get_initial_condition()
         else:
@@ -91,6 +92,9 @@ class IOBlock(Block, ABC):
     def get_state(self):
         pass
 
+    def reset(self):
+        self.current_state = self.initial_state
+
 
 class Connection:
     def __init__(self, block1: Block, block2: Block):
@@ -98,25 +102,13 @@ class Connection:
         self.target = block2
 
 
-class ScopeBlock(IOBlock):
+class IBlock(Block, ABC):
 
-    def __init__(self, name: str, prev_block: Block, next_block: Block = None, save_states: bool = True):
-        super().__init__(name, prev_block.dim_output, prev_block.dim_output,
-                         prev_block, next_block, save_states)
+    def __init__(self, name: str, prev_block: Block, save_states: bool):
+        super().__init__(name,
+                         dim_input=prev_block.dim_output,
+                         dim_output=prev_block.dim_output,
+                         prev_block=prev_block,
+                         next_block=None,
+                         save_states=save_states)
 
-        self.input = np.zeros((prev_block.dim_output, 1))
-
-    def get_initial_condition(self) -> np.ndarray:
-        return self.input
-
-    def get_next_state(self) -> np.ndarray:
-        return self.input
-
-    def get_state(self) -> np.ndarray:
-        return self.input
-
-    def get_response(self, sim_time: float):
-        return self.input
-
-    def set_u_k(self, u):
-        self.input = u

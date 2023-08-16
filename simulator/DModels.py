@@ -6,7 +6,6 @@ class DelayBlock(IOBlock):
 
     def __init__(self, x0: np.ndarray, name: str = "delay", ts: int = 1,
                  prev_block=None, next_block=None, save_states=False):
-
         dim_input, dim_output = x0.shape
         super().__init__(name, dim_input, dim_output, x0, prev_block, next_block, save_states)
         self.ts = ts
@@ -76,13 +75,13 @@ class LinearDModel(IOBlock):
 
     def get_response(self, sim_time: float):
         u = self.initial_input
-        x_next = self.A @ self.initial_state + self.B @ u
+        x_next = self.A @ self.current_state + self.B @ u
         y_next = self.C @ x_next + self.D @ u
 
         return y_next
 
     def get_state(self):
-        return self.initial_state
+        return self.current_state
 
     def get_initial_condition(self):
         return self.initial_state

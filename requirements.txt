@@ -1,2 +1,6 @@
 matplotlib~=3.5.1
 numpy~=1.23.4
+torch~=2.0.1
+networkx~=3.1
+gymnasium~=0.29.0
+ipython~=8.14.0
